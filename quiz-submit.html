@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Latihan Soal SSW Peternakan</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #0f172a; background: #f8fafc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px; }
+    main { max-width: 760px; margin: auto; padding: 28px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 25px #0f172a0d; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .muted { color: #64748b; }
+    .topline { display: flex; justify-content: space-between; gap: 12px; margin: 22px 0 8px; font-size: 14px; }
+    .track { height: 9px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+    #progress { height: 100%; width: 0; background: #3b82f6; transition: width .2s; }
+    #question { margin: 24px 0 18px; line-height: 1.65; white-space: pre-line; }
+    #options { display: grid; gap: 10px; }
+    .option { width: 100%; padding: 14px 16px; text-align: left; border: 1.5px solid #e2e8f0; border-radius: 9px; background: white; color: inherit; font-size: 15px; cursor: pointer; }
+    .option:hover:not(:disabled) { border-color: #3b82f6; background: #f8fafc; }
+    .option.selected { border-color: #3b82f6; background: #eff6ff; }
+    .option.correct { border-color: #22c55e; background: #dcfce7; color: #15803d; font-weight: 600; }
+    .option.incorrect { border-color: #ef4444; background: #fee2e2; color: #b91c1c; }
+    #feedback { display: none; margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-weight: 600; }
+    #feedback.correct { display: block; color: #15803d; background: #dcfce7; border: 1px solid #22c55e; }
+    #feedback.incorrect { display: block; color: #b91c1c; background: #fee2e2; border: 1px solid #ef4444; }
+    .actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+    button.action { border: 0; border-radius: 8px; padding: 11px 18px; background: #3b82f6; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button.action.secondary { color: #0f172a; background: #f1f5f9; border: 1px solid #e2e8f0; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    #status { padding: 16px; border-radius: 8px; background: #eff6ff; color: #1d4ed8; }
+    @media (max-width: 520px) { main { padding: 20px 16px; } .actions { flex-direction: column-reverse; } button.action { width: 100%; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Latihan Soal SSW Peternakan</h1>
+  <p class="muted">Pilih jawaban terlebih dahulu, lalu tekan <strong>Kirim Jawaban</strong> untuk melihat hasilnya.</p>
+  <div id="status">Memuat soal...</div>
+  <section id="quiz" hidden>
+    <div class="topline"><span id="position"></span><span id="score"></span></div>
+    <div class="track"><div id="progress"></div></div>
+    <h2 id="question"></h2>
+    <div id="options"></div>
+    <div id="feedback" role="status" aria-live="polite"></div>
+    <div class="actions">
+      <button class="action secondary" id="previous" type="button">← Sebelumnya</button>
+      <button class="action" id="submit" type="button" disabled>Kirim Jawaban</button>
+      <button class="action" id="next" type="button" hidden>Soal Berikutnya →</button>
+    </div>
+  </section>
+</main>
+<script>
+  // Gunakan bank soal yang sudah ada di index.html agar data soal tidak perlu diduplikasi.
+  const sourceUrl = 'https://raw.githubusercontent.com/rifkirifkiilhamilham-beep/webku-hehehehe/main/index.html';
+  const $ = (id) => document.getElementById(id);
+  let questions = [];
+  let index = 0;
+  let answers = [];
+  let submitted = [];
+
+  function render() {
+    const item = questions[index];
+    const selected = answers[index];
+    const isSubmitted = submitted[index];
+    $('position').textContent = `Soal ${index + 1} dari ${questions.length}`;
+    $('score').textContent = `Benar: ${answers.reduce((total, answer, i) => total + (submitted[i] && answer === questions[i].a.toLowerCase() ? 1 : 0), 0)}`;
+    $('progress').style.width = `${Math.round((index / questions.length) * 100)}%`;
+    $('question').textContent = `${item.n}. ${item.q}`;
+    $('options').replaceChildren();
+    $('feedback').className = '';
+    $('feedback').textContent = '';
+
+    item.o.forEach((text) => {
+      const key = text.trim().charAt(0).toLowerCase();
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'option';
+      button.textContent = text;
+      if (selected === key) button.classList.add('selected');
+      if (isSubmitted) {
+        button.disabled = true;
+        if (key === item.a.toLowerCase()) button.classList.add('correct');
+        if (key === selected && key !== item.a.toLowerCase()) button.classList.add('incorrect');
+      } else {
+        button.addEventListener('click', () => {
+          answers[index] = key;
+          render();
+        });
+      }
+      $('options').append(button);
+    });
+
+    $('previous').disabled = index === 0;
+    $('submit').hidden = isSubmitted;
+    $('submit').disabled = selected == null;
+    $('next').hidden = !isSubmitted || index === questions.length - 1;
+    if (isSubmitted) {
+      const isCorrect = selected === item.a.toLowerCase();
+      $('feedback').className = isCorrect ? 'correct' : 'incorrect';
+      $('feedback').textContent = isCorrect
+        ? '✅ Jawaban Anda benar!'
+        : `❌ Jawaban Anda salah. Jawaban yang benar: ${item.a.toUpperCase()}.`;
+    }
+  }
+
+  $('previous').addEventListener('click', () => { if (index > 0) { index--; render(); } });
+  $('submit').addEventListener('click', () => {
+    if (answers[index] == null) return;
+    submitted[index] = true;
+    render();
+  });
+  $('next').addEventListener('click', () => { if (index < questions.length - 1) { index++; render(); } });
+
+  fetch(sourceUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error('Bank soal tidak dapat dimuat.');
+      return response.text();
+    })
+    .then((html) => {
+      const match = html.match(/const rawQuizData\s*=\s*(\[[\s\S]*?\n\s*\]);/);
+      if (!match) throw new Error('Data soal tidak ditemukan di index.html.');
+      questions = Function(`"use strict"; return (${match[1]});`)();
+      if (!Array.isArray(questions) || questions.length === 0) throw new Error('Bank soal kosong.');
+      answers = new Array(questions.length).fill(null);
+      submitted = new Array(questions.length).fill(false);
+      $('status').hidden = true;
+      $('quiz').hidden = false;
+      render();
+    })
+    .catch((error) => {
+      $('status').textContent = `Gagal memuat soal: ${error.message} Muat ulang halaman atau periksa koneksi internet.`;
+    });
+</script>
+</body>
+</html>
